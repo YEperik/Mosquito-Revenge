@@ -93,7 +93,7 @@ jobs:
       - name: Build Ebitengine Android library
         run: |
           mkdir -p mobile/android/app/libs
-          go run github.com/hajimehoshi/ebiten/cmd/ebitenmobile bind \
+          go run github.com/hajimehoshi/ebiten/v2//cmd/ebitenmobile bind \
             -target android \
             -androidapi 23 \
             -javapkg com.example.mosquitorevenge \
