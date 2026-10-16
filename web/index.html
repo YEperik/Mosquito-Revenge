@@ -12,3 +12,22 @@
     canvas { display: block; max-width: 100vw; max-height: 100dvh; object-fit: contain; touch-action: none; }
   </style>
 </head>
+<body>
+  <script src="wasm_exec.js"></script>
+  <script>
+    (async () => {
+      const go = new Go();
+      const response = await fetch("mosquito-revenge.wasm");
+      let result;
+      try {
+        result = await WebAssembly.instantiateStreaming(response.clone(), go.importObject);
+      } catch (_) {
+        result = await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject);
+      }
+      await go.run(result.instance);
+    })().catch((error) => {
+      document.body.innerHTML = "<pre style='color:#fff;padding:1rem'>Game failed to start: " + String(error) + "</pre>";
+    });
+  </script>
+</body>
+</html>
