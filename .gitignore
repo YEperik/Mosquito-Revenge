@@ -1,0 +1,14 @@
+# Go
+/build/
+*.exe
+*.test
+*.out
+
+# Android build outputs
+/mobile/android/.gradle/
+/mobile/android/build/
+/mobile/android/app/build/
+/mobile/android/app/libs/*.aar
+
+# Web build output
+/site/
