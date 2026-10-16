@@ -1,6 +1,6 @@
 # Mosquito Revenge
 
-A 2D top-down stealth arcade game built using Go and Ebitengine v2. All visuals are generated at runtime using geometry/vectors; no image files are required.
+A 2D top-down stealth arcade game built using Go and Ebitengine. All visuals are generated at runtime using geometry/vectors; no image files are required.
 
 ## Features
 
