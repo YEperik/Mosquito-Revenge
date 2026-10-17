@@ -1,52 +1,49 @@
 # Mosquito Revenge — Ultimate Arcade Edition
 
-Game 2D top-down stealth arcade menggunakan Go dan Ebitengine v2. Kanvas logis **360 × 640 portrait**. Semua karakter, arena, HUD, musuh, telegraph serangan, dan efek partikel digambar saat runtime menggunakan geometri Ebitengine; game tidak membutuhkan sprite atau gambar eksternal.
+A 2D top-down stealth arcade game built using Go and Ebitengine v2. It features a logical canvas of **360 × 640 (portrait orientation)**. All characters, arenas, HUD elements, enemies, attack telegraphs, and particle effects are rendered at runtime using Ebitengine’s geometry primitives; the game requires no external sprites or image assets.
 
-## Fitur game
+## Game Features
 
-- **5 stage** dengan tema, warna, tekanan angin, target darah, dan komposisi musuh berbeda.
-- **3 tingkat kesulitan**: Chill, Normal, dan Nightmare.
-- **Boss Giant Swatter** pada stage terakhir, dengan serangan bertanda area, waktu peringatan, dan bonus saat berhasil menghindar.
-- **3 tipe musuh**: Spider berpatroli, Dragonfly mengejar pemain, dan Beetle menerjang.
-- **3 skill**: DASH, CLOAK, dan PULSE, semuanya memiliki cooldown.
-- **4 power-up**: Nectar, Cool Mist, Shield, dan Wing Overdrive.
-- Combo menghisap darah, skor, meter gatal, perut yang membesar/merah, efek partikel, feedback damage, perfect escape, serta kipas yang mendorong gerakan.
-- Sistem nyawa, peringkat stage 1–3 bintang, pause/resume, layar game over dan victory, statistik run.
-- Kontrol mouse/keyboard dan multi-touch: satu jari mengarahkan nyamuk, jari lain dapat menekan skill.
-- GitHub Actions memeriksa file wajib, menjalankan tes, build desktop, build WASM, build APK debug, dan deploy GitHub Pages pada branch utama.
-
-## Struktur proyek
+- **5 stages**, each with unique themes, color palettes, wind pressure, blood-consumption targets, and enemy compositions.
+- **3 difficulty levels**: Chill, Normal, and Nightmare.
+- A **Giant Swatter boss** in the final stage, featuring area-of-effect attacks, warning indicators, and bonuses for successful dodges.
+- **3 enemy types**: Spiders (patrolling), Dragonflies (pursuing the player), and Beetles (charging).
+- **3 skills**: DASH, CLOAK, and PULSE—all with individual cooldowns.
+- **4 power-ups**: Nectar, Cool Mist, Shield, and Wing Overdrive.
+- Gameplay mechanics including blood-sucking combos, a scoring system, an "itch" meter, a visually expanding/reddening abdomen, particle effects, damage feedback, "perfect escape" bonuses, and fans that influence movement.
+- A life system, 1–3 star stage ratings, pause/resume functionality, game-over and victory screens, and run statistics.
+- Support for mouse/keyboard and multi-touch controls (e.g., one finger to steer the mosquito, while others activate skills).
+- GitHub Actions integration for mandatory file checks, automated testing, desktop and WASM builds, debug APK generation, and deployment to GitHub Pages from the main branch. ## Project structure
 
 ```text
 mosquito-revenge/
 ├── .github/workflows/build.yml
-├── game/
-│   ├── game.go
-│   ├── draw.go
-│   └── game_test.go
+├── games/
+│ ├── game.go
+│ ├── draw.go
+│ └── game_test.go
 ├── mobile/
-│   ├── mobile.go
-│   └── android/
-│       ├── settings.gradle
-│       ├── build.gradle
-│       ├── gradle.properties
-│       └── app/
-│           └── src/main/ (manifest, Activity Java, styles.xml)
+│ ├── mobile.go
+│ └── android/
+│ ├── settings. gradle
+│ ├── build.gradle
+│ ├── gradle. properties
+│ └── app/
+│ └── src/main/ (manifest, Activity Java, styles.xml)
 ├── web/index.html
-├── go.mod
+├── go. mod
 ├── main.go
 └── README.md
 ```
+## Requirements
 
-## Persyaratan
+* **Go 1.25.x** (as specified in the `go.mod` directive).
+* Linux Desktop: native toolchain and OpenGL/X11/ALSA packages.
+* Android: JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK `27.2.12479018`, and Gradle 8.11.1.
 
-- **Go 1.25.x** (sesuai directive di `go.mod`).
-- Desktop Linux: toolchain native serta paket OpenGL/X11/ALSA.
-- Android: JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK `27.2.12479018`, Gradle 8.11.1.
+## Running on desktop
 
-## Menjalankan desktop
-
-Jalankan dari root proyek:
+Execute from the project root:
 
 ```sh
 go mod download
@@ -54,7 +51,7 @@ go test ./...
 go run .
 ```
 
-Di Ubuntu/Debian, dependensi desktop Ebitengine bisa dipasang dengan:
+On Ubuntu/Debian, Ebitengine's desktop dependencies can be installed via:
 
 ```sh
 sudo apt-get update
@@ -62,16 +59,15 @@ sudo apt-get install -y libasound2-dev libgl1-mesa-dev libx11-dev \
   libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxrender-dev \
   libxxf86vm-dev
 ```
+## Running a local web server
 
-## Menjalankan web lokal
-
-Cara termudah untuk pengembangan:
+The easiest way for development:
 
 ```sh
 go run github.com/hajimehoshi/wasmserve@latest .
 ```
 
-Atau susun file WASM untuk di-host:
+Alternatively, build the WASM files for hosting:
 
 ```sh
 mkdir -p site
@@ -80,11 +76,11 @@ cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" site/wasm_exec.js
 cp web/index.html site/index.html
 ```
 
-Sajikan folder `site` melalui HTTP, bukan `file://`. File `wasm_exec.js` harus diambil dari toolchain Go yang sama dengan yang digunakan untuk mengompilasi WASM.
+Serve the `site` folder via HTTP, not `file://`. The `wasm_exec.js` file must be retrieved from the same Go toolchain used to compile the WASM.
 
-## Build APK Android lokal
+## Building an Android APK locally
 
-Siapkan Go 1.25+, JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK `27.2.12479018`, dan Gradle 8.11.1. Pastikan `ANDROID_HOME` atau `ANDROID_SDK_ROOT` menunjuk SDK Android yang benar.
+Set up Go 1.25+, JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK `27.2.12479018`, and Gradle 8.11.1. Ensure that `ANDROID_HOME` or `ANDROID_SDK_ROOT` points to the correct Android SDK.
 
 ```sh
 mkdir -p mobile/android/app/libs
@@ -99,42 +95,40 @@ go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
 gradle --no-daemon -p mobile/android assembleDebug
 ```
 
-`ebitenmobile bind` menghasilkan **AAR**; Gradle mengemas AAR bersama Activity Android menjadi APK. APK debug dihasilkan di:
+`ebitenmobile bind` generates an **AAR**; Gradle packages the AAR, along with an Android Activity, into an APK. The debug APK is generated at:
 
 ```text
 mobile/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-APK debug belum ditandatangani untuk rilis produksi Play Store.
+This debug APK is not signed for a production release on the Play Store.
 
-## GitHub Actions dan Pages
+## GitHub Actions and Pages
 
-1. Unggah **seluruh isi folder proyek** ke repository GitHub, bukan hanya `main.go` dan folder `game`.
-2. Pastikan path ini ada di repository: `web/index.html`, seluruh file `mobile/android/`, `mobile/mobile.go`, dan `game/game_test.go`. Workflow akan menggagalkan job lebih awal dengan pesan jelas jika berkas wajib hilang.
-3. Push ke `main` atau `master`, lalu buka tab **Actions**.
-4. Jika job Android lulus, unduh artefak `mosquito-revenge-android-debug` dari workflow run.
-5. Untuk publikasi web, buka **Settings → Pages → Build and deployment**, lalu pilih **GitHub Actions**. Deploy otomatis dijalankan saat push ke `main` atau `master`.
+1. Upload the **entire contents of the project folder** to the GitHub repository—not just `main.go` and the `game` folder.
+2. Ensure the following paths exist in the repository: `web/index.html`, all files within `mobile/android/`, `mobile/mobile.go`, and `game/game_test.go`. The workflow will fail the job early and provide a clear error message if any required files are missing.
+3. Push your changes to the `main` or `master` branch, then navigate to the **Actions** tab.
+4. If the Android job passes, download the `mosquito-revenge-android-debug` artifact from the workflow run.
+5. For web deployment, go to **Settings → Pages → Build and deployment** and select **GitHub Actions**. Deployment is triggered automatically upon pushing to the `main` or `master` branch.
 
-### Memeriksa kegagalan build
+### Troubleshooting build failures
 
-- **`Required project file is missing or empty`**: repository tidak memuat semua isi arsip. Pastikan file yang dilaporkan benar-benar ter-commit.
-- **`go.mod requires go >= 1.25.0`**: jangan gunakan Go 1.23/1.24; workflow mengatur Go `1.25.x`.
-- **NDK tidak ditemukan**: cek log `Install Android SDK and NDK`. Workflow memasang NDK `27.2.12479018` dan meneruskan `ANDROID_NDK_HOME`/`ANDROID_NDK_ROOT` ke step berikutnya.
-- **`EbitenView` tidak ditemukan saat kompilasi Java**: periksa bahwa step pembuatan AAR berhasil dan `-javapkg com.example.mosquitorevenge` tetap cocok dengan import Activity `com.example.mosquitorevenge.mobile.EbitenView`.
-- **GitHub Pages tidak ter-deploy**: ubah Pages ke source **GitHub Actions**; job deploy hanya berjalan untuk push ke `main`/`master`, bukan pull request.
+* **`Required project file is missing or empty`**: The repository does not contain the full contents of the project archive. Verify that the specified files have been properly committed.
+* **`go.mod requires go >= 1.25.0`**: Do not use Go 1.23 or 1.24; the workflow is configured for Go `1.25.x`.
+* **NDK not found**: Check the logs for the `Install Android SDK and NDK` step. The workflow installs NDK version `27.2.12479018` and passes the `ANDROID_NDK_HOME`/`ANDROID_NDK_ROOT` variables to subsequent steps.
+* **`EbitenView` not found during Java compilation**: Ensure that the AAR generation step completed successfully and that the `-javapkg com.example.mosquitorevenge` parameter matches the Activity import: `com.example.mosquitorevenge.mobile.EbitenView`.
+* **GitHub Pages not deploying**: Ensure that the source for GitHub Pages is set to **GitHub Actions**. Note that the deployment job only runs when pushing to the `main` or `master` branch—it does not trigger for pull requests. The project workflow and configuration have undergone static analysis; however, a successful end-to-end build must still be verified on a GitHub runner or a machine equipped with internet access and the complete toolchain. This build environment is unable to download the Go 1.25 toolchain from `proxy.golang.org`, so I cannot confirm that the APK/WASM files have been successfully compiled here.
 
-Workflow dan konfigurasi proyek sudah diaudit secara statis, tetapi keberhasilan build end-to-end tetap harus dikonfirmasi di runner GitHub atau komputer yang memiliki akses internet dan toolchain lengkap. Lingkungan pembuatan berkas ini tidak dapat mengunduh toolchain Go 1.25 dari `proxy.golang.org`, jadi saya tidak mengklaim APK/WASM telah berhasil dikompilasi di sini.
+## Controls
 
-## Kontrol
-
-| Aksi | Android / touch | PC |
+| Action | Android / Touch | PC |
 |---|---|---|
-| Mulai / lanjut / retry | Tap layar | Enter atau klik kiri |
-| Pilih tingkat kesulitan | Tap Chill / Normal / Nightmare | Klik pilihan |
-| Terbang | Drag jari | WASD / tombol panah |
-| Menghisap darah | Tahan di atas tangan | Tahan Space atau klik kiri di zona tangan |
-| DASH | Tombol DASH | Shift |
-| CLOAK | Tombol CLOAK | E |
-| PULSE | Tombol PULSE | Q |
-| Pause / resume | Tombol II, tap overlay | P atau Esc |
-| Restart saat pause | — | R |
+| Start / Continue / Retry | Tap the screen | Enter or left-click |
+| Select difficulty level | Tap Chill / Normal / Nightmare | Click your choice |
+| Fly | Drag with finger | WASD / arrow keys |
+| Drain blood | Hold over the hand | Hold Space or left-click on the hand zone |
+| DASH | DASH button | Shift |
+| CLOAK | CLOAK button | E |
+| PULSE | PULSE button | Q |
+| Pause / Resume | II button, tap the overlay | P or Esc |
+| Restart while paused | — | R |
