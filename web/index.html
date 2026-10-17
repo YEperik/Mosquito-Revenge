@@ -1,33 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#0f192b">
+  <meta name="description" content="Mosquito Revenge - a tiny-winged top-down stealth arcade game.">
   <title>Mosquito Revenge</title>
   <style>
+    :root { color-scheme: dark; background: #0f192b; }
     * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0f192b; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0f192b; }
     body { display: flex; align-items: center; justify-content: center; touch-action: none; }
-    canvas { display: block; max-width: 100vw; max-height: 100dvh; object-fit: contain; touch-action: none; }
+    canvas { display: block; max-width: 100vw; max-height: 100dvh; object-fit: contain; touch-action: none; image-rendering: auto; }
+    #loading { position: fixed; inset: 0; display: grid; place-content: center; gap: 12px; color: #f8f0d9; font: 600 16px system-ui, sans-serif; text-align: center; }
+    #loading small { color: #9ab0bf; font-weight: 400; }
   </style>
+  <script src="wasm_exec.js"></script>
 </head>
 <body>
-  <script src="wasm_exec.js"></script>
+  <div id="loading">MOSQUITO REVENGE<small>Loading tiny wings...</small></div>
   <script>
     (async () => {
-      const go = new Go();
-      const response = await fetch("mosquito-revenge.wasm");
-      let result;
+      const loading = document.getElementById('loading');
       try {
-        result = await WebAssembly.instantiateStreaming(response.clone(), go.importObject);
-      } catch (_) {
-        result = await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject);
+        if (!globalThis.Go) throw new Error('Go WebAssembly runtime was not loaded.');
+        const go = new Go();
+        const response = await fetch('mosquito-revenge.wasm');
+        if (!response.ok) throw new Error(`Cannot load WASM: HTTP ${response.status}`);
+        let result;
+        if (WebAssembly.instantiateStreaming) {
+          try {
+            result = await WebAssembly.instantiateStreaming(response.clone(), go.importObject);
+          } catch (_) {
+            result = await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject);
+          }
+        } else {
+          result = await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject);
+        }
+        loading.remove();
+        await go.run(result.instance);
+      } catch (error) {
+        loading.innerHTML = 'Game could not start<small></small>';
+        loading.querySelector('small').textContent = error && error.message ? error.message : String(error);
+        console.error(error);
       }
-      await go.run(result.instance);
-    })().catch((error) => {
-      document.body.innerHTML = "<pre style='color:#fff;padding:1rem'>Game failed to start: " + String(error) + "</pre>";
-    });
+    })();
   </script>
 </body>
 </html>
