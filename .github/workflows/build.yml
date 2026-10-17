@@ -90,15 +90,20 @@ jobs:
       - name: Download Go modules
         run: go mod download
 
+      # --- PERUBAHAN UTAMA ADA DI SINI ---
+      - name: Install ebitenmobile tool
+        run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@v2.10.5
+
       - name: Build Ebitengine Android library
         run: |
           mkdir -p mobile/android/app/libs
-          go run github.com/hajimehoshi/ebiten/v2//cmd/ebitenmobile bind \
+          ebitenmobile bind \
             -target android \
             -androidapi 23 \
             -javapkg com.example.mosquitorevenge \
             -o mobile/android/app/libs/mosquitorevenge.aar \
             ./mobile
+      # ----------------------------------
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
