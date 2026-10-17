@@ -40,8 +40,12 @@
         loading.remove();
         await go.run(result.instance);
       } catch (error) {
-        loading.innerHTML = 'Game could not start<small></small>';
-        loading.querySelector('small').textContent = error && error.message ? error.message : String(error);
+        const message = error && error.message ? error.message : String(error);
+        const panel = loading.isConnected ? loading : document.createElement('div');
+        panel.id = 'loading';
+        panel.innerHTML = 'Game could not start<small></small>';
+        panel.querySelector('small').textContent = message;
+        if (!panel.isConnected) document.body.appendChild(panel);
         console.error(error);
       }
     })();

@@ -44,6 +44,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.drawParticles(screen)
 	g.drawHUD(screen)
 	g.drawSlap(screen)
+	g.drawBossAttack(screen)
 	g.drawMosquito(screen)
 	g.drawAbilityEffects(screen)
 	g.drawFloaters(screen)

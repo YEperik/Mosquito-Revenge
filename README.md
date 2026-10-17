@@ -1,38 +1,52 @@
 # Mosquito Revenge — Ultimate Arcade Edition
 
-Game 2D top-down stealth arcade menggunakan Go dan Ebitengine v2. Semua karakter, arena, HUD, musuh, telegraph serangan, serta efek partikel digambar saat runtime menggunakan vector/shape drawing. Tidak ada aset gambar eksternal yang diperlukan. Kanvas logis: **360 × 640 portrait**.
+Game 2D top-down stealth arcade menggunakan Go dan Ebitengine v2. Kanvas logis **360 × 640 portrait**. Semua karakter, arena, HUD, musuh, telegraph serangan, dan efek partikel digambar saat runtime menggunakan geometri Ebitengine; game tidak membutuhkan sprite atau gambar eksternal.
 
 ## Fitur game
 
-- **5 stage** dengan tema, warna, tekanan angin, target darah dan kombinasi musuh berbeda: Dorm Room, Hot Kitchen, Greenhouse, Night Garden, dan Stormy Rooftop.
-- **3 kesulitan** yang dapat dipilih dari menu: Chill (4 nyawa, angin/musuh lebih ringan), Normal (3 nyawa), dan Nightmare (angin, musuh, serta itch meter lebih agresif).
-- **Boss event di stage terakhir**: Giant Swatter menandai lokasi serangan, memberi jeda peringatan, lalu menyerang. Hindari zona merah untuk mendapat bonus skor. Ada maksimal tiga pola serangan dalam stage final.
-- **3 jenis musuh**: Spider berpatroli, Dragonfly mengejar pemain, dan Beetle melakukan charge.
-- **3 skill dengan cooldown**: DASH untuk kabur cepat, CLOAK agar aman dari deteksi sementara, dan PULSE untuk menahan musuh.
-- **4 power-up**: Nectar (skor dan progres), Cool Mist (menurunkan itch), Shield (menahan satu benturan), dan Wing Overdrive (meningkatkan kecepatan serta dash).
-- Combo saat menghisap darah, perut membesar dan memerah, efek partikel, floating feedback, damage flash, peringatan tepukan dan kipas dengan gaya angin yang berubah per stage.
-- **Peringkat 1–3 medali per stage** berdasarkan jumlah benturan, power-up dan perfect escape.
-- **Pause/resume**, restart run, layar game-over dan victory dengan ringkasan statistik.
-- Kontrol multi-touch: satu jari mengarahkan nyamuk, sementara jari lain dapat menekan skill.
-- CI melakukan gofmt check, unit tests, desktop compile, WASM build dan APK build.
+- **5 stage** dengan tema, warna, tekanan angin, target darah, dan komposisi musuh berbeda.
+- **3 tingkat kesulitan**: Chill, Normal, dan Nightmare.
+- **Boss Giant Swatter** pada stage terakhir, dengan serangan bertanda area, waktu peringatan, dan bonus saat berhasil menghindar.
+- **3 tipe musuh**: Spider berpatroli, Dragonfly mengejar pemain, dan Beetle menerjang.
+- **3 skill**: DASH, CLOAK, dan PULSE, semuanya memiliki cooldown.
+- **4 power-up**: Nectar, Cool Mist, Shield, dan Wing Overdrive.
+- Combo menghisap darah, skor, meter gatal, perut yang membesar/merah, efek partikel, feedback damage, perfect escape, serta kipas yang mendorong gerakan.
+- Sistem nyawa, peringkat stage 1–3 bintang, pause/resume, layar game over dan victory, statistik run.
+- Kontrol mouse/keyboard dan multi-touch: satu jari mengarahkan nyamuk, jari lain dapat menekan skill.
+- GitHub Actions memeriksa file wajib, menjalankan tes, build desktop, build WASM, build APK debug, dan deploy GitHub Pages pada branch utama.
 
-## Kontrol
+## Struktur proyek
 
-| Aksi | Android/touch | PC |
-| --- | --- | --- |
-| Mulai / lanjut | Tap layar | Enter atau klik kiri |
-| Pilih kesulitan | Tap CHILL/NORMAL/NIGHTMARE pada menu | Klik pilihan pada menu |
-| Terbang | Drag jari | WASD atau tombol panah |
-| Menghisap darah | Tahan di zona tangan | Tahan Space atau klik kiri sambil berada di atas tangan |
-| DASH | Tombol DASH di kanan bawah | Shift kiri/kanan |
-| CLOAK | Tombol CLOAK di kiri bawah | E |
-| PULSE | Tombol PULSE di tengah bawah | Q |
-| Pause/resume | Tombol `II` di kanan atas, tap layar saat pause untuk resume | P atau Esc |
-| Restart saat pause | — | R |
+```text
+mosquito-revenge/
+├── .github/workflows/build.yml
+├── game/
+│   ├── game.go
+│   ├── draw.go
+│   └── game_test.go
+├── mobile/
+│   ├── mobile.go
+│   └── android/
+│       ├── settings.gradle
+│       ├── build.gradle
+│       ├── gradle.properties
+│       └── app/
+│           └── src/main/ (manifest, Activity Java, styles.xml)
+├── web/index.html
+├── go.mod
+├── main.go
+└── README.md
+```
 
-## Versi Go dan menjalankan desktop
+## Persyaratan
 
-Persyaratan: **Go 1.25.x atau lebih baru**, toolchain native untuk platform desktop, dan akses internet pada build pertama kali.
+- **Go 1.25.x** (sesuai directive di `go.mod`).
+- Desktop Linux: toolchain native serta paket OpenGL/X11/ALSA.
+- Android: JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK `27.2.12479018`, Gradle 8.11.1.
+
+## Menjalankan desktop
+
+Jalankan dari root proyek:
 
 ```sh
 go mod download
@@ -40,21 +54,24 @@ go test ./...
 go run .
 ```
 
-Di Linux, Ebitengine perlu paket pengembangan untuk OpenGL/X11/ALSA. Pada Ubuntu/Debian:
+Di Ubuntu/Debian, dependensi desktop Ebitengine bisa dipasang dengan:
 
 ```sh
 sudo apt-get update
 sudo apt-get install -y libasound2-dev libgl1-mesa-dev libx11-dev \
-  libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+  libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxrender-dev \
+  libxxf86vm-dev
 ```
 
-## WebAssembly lokal
+## Menjalankan web lokal
+
+Cara termudah untuk pengembangan:
 
 ```sh
 go run github.com/hajimehoshi/wasmserve@latest .
 ```
 
-Atau build situs manual:
+Atau susun file WASM untuk di-host:
 
 ```sh
 mkdir -p site
@@ -63,11 +80,11 @@ cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" site/wasm_exec.js
 cp web/index.html site/index.html
 ```
 
-Sajikan folder `site` melalui HTTP, bukan `file://`.
+Sajikan folder `site` melalui HTTP, bukan `file://`. File `wasm_exec.js` harus diambil dari toolchain Go yang sama dengan yang digunakan untuk mengompilasi WASM.
 
 ## Build APK Android lokal
 
-Persyaratan: Go 1.25+, JDK 17, Android SDK Platform 35, Build Tools 35.0.0, Android NDK `27.2.12479018`, dan Gradle `8.11.1`.
+Siapkan Go 1.25+, JDK 17, Android SDK Platform 35, Build Tools 35.0.0, NDK `27.2.12479018`, dan Gradle 8.11.1. Pastikan `ANDROID_HOME` atau `ANDROID_SDK_ROOT` menunjuk SDK Android yang benar.
 
 ```sh
 mkdir -p mobile/android/app/libs
@@ -82,37 +99,42 @@ go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
 gradle --no-daemon -p mobile/android assembleDebug
 ```
 
-APK debug dihasilkan ke `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. Perintah `ebitenmobile bind` membuat AAR; Gradle mengemasnya bersama Android Activity menjadi APK.
+`ebitenmobile bind` menghasilkan **AAR**; Gradle mengemas AAR bersama Activity Android menjadi APK. APK debug dihasilkan di:
+
+```text
+mobile/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+APK debug belum ditandatangani untuk rilis produksi Play Store.
 
 ## GitHub Actions dan Pages
 
-Workflow `/.github/workflows/build.yml` menjalankan tests/build terlebih dahulu, lalu membangun WASM dan APK secara paralel.
+1. Unggah **seluruh isi folder proyek** ke repository GitHub, bukan hanya `main.go` dan folder `game`.
+2. Pastikan path ini ada di repository: `web/index.html`, seluruh file `mobile/android/`, `mobile/mobile.go`, dan `game/game_test.go`. Workflow akan menggagalkan job lebih awal dengan pesan jelas jika berkas wajib hilang.
+3. Push ke `main` atau `master`, lalu buka tab **Actions**.
+4. Jika job Android lulus, unduh artefak `mosquito-revenge-android-debug` dari workflow run.
+5. Untuk publikasi web, buka **Settings → Pages → Build and deployment**, lalu pilih **GitHub Actions**. Deploy otomatis dijalankan saat push ke `main` atau `master`.
 
-1. Push folder proyek ke repository GitHub, branch `main` atau `master`.
-2. Buka **Actions** dan lihat job `Go checks and gameplay tests`, `Build WebAssembly`, dan `Build Android debug APK`.
-3. Unduh artefak `mosquito-revenge-android-debug` dari run yang berhasil.
-4. Untuk menerbitkan web, buka **Settings → Pages → Build and deployment**, lalu pilih **GitHub Actions**. Push ke branch utama akan memicu deployment.
+### Memeriksa kegagalan build
 
-APK yang disediakan adalah **debug APK**, bukan APK bertanda tangan rilis Play Store. Distribusi produksi memerlukan signing config dan keystore yang disimpan sebagai GitHub Actions Secrets, bukan di repository.
+- **`Required project file is missing or empty`**: repository tidak memuat semua isi arsip. Pastikan file yang dilaporkan benar-benar ter-commit.
+- **`go.mod requires go >= 1.25.0`**: jangan gunakan Go 1.23/1.24; workflow mengatur Go `1.25.x`.
+- **NDK tidak ditemukan**: cek log `Install Android SDK and NDK`. Workflow memasang NDK `27.2.12479018` dan meneruskan `ANDROID_NDK_HOME`/`ANDROID_NDK_ROOT` ke step berikutnya.
+- **`EbitenView` tidak ditemukan saat kompilasi Java**: periksa bahwa step pembuatan AAR berhasil dan `-javapkg com.example.mosquitorevenge` tetap cocok dengan import Activity `com.example.mosquitorevenge.mobile.EbitenView`.
+- **GitHub Pages tidak ter-deploy**: ubah Pages ke source **GitHub Actions**; job deploy hanya berjalan untuk push ke `main`/`master`, bukan pull request.
 
-## Struktur proyek
+Workflow dan konfigurasi proyek sudah diaudit secara statis, tetapi keberhasilan build end-to-end tetap harus dikonfirmasi di runner GitHub atau komputer yang memiliki akses internet dan toolchain lengkap. Lingkungan pembuatan berkas ini tidak dapat mengunduh toolchain Go 1.25 dari `proxy.golang.org`, jadi saya tidak mengklaim APK/WASM telah berhasil dikompilasi di sini.
 
-```text
-mosquito-revenge/
-├── .github/workflows/build.yml
-├── game/
-│   ├── game.go          # state, difficulty, gameplay, boss, input, power-up
-│   ├── draw.go          # vector rendering, efek visual, HUD dan overlay
-│   └── game_test.go     # unit tests gameplay dasar
-├── mobile/
-│   ├── mobile.go
-│   └── android/         # Gradle, manifest dan Activity
-├── web/index.html
-├── go.mod
-├── main.go
-└── README.md
-```
+## Kontrol
 
-## Catatan validasi
-
-Jalankan `go test ./...` dan workflow GitHub Actions setelah mengunduh. Lingkungan penyusun saat ini tidak memiliki Go 1.25+ beserta dependency cache dan koneksi unduhan Go dari container dibatasi, sehingga saya tidak menyatakan APK/WASM berhasil dibangun di sini. Workflow menyediakan verifikasi otomatis pada runner Ubuntu dengan toolchain yang sesuai.
+| Aksi | Android / touch | PC |
+|---|---|---|
+| Mulai / lanjut / retry | Tap layar | Enter atau klik kiri |
+| Pilih tingkat kesulitan | Tap Chill / Normal / Nightmare | Klik pilihan |
+| Terbang | Drag jari | WASD / tombol panah |
+| Menghisap darah | Tahan di atas tangan | Tahan Space atau klik kiri di zona tangan |
+| DASH | Tombol DASH | Shift |
+| CLOAK | Tombol CLOAK | E |
+| PULSE | Tombol PULSE | Q |
+| Pause / resume | Tombol II, tap overlay | P atau Esc |
+| Restart saat pause | — | R |
