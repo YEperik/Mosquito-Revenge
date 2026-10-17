@@ -9,10 +9,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: mosquito-revenge-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: Go checks and gameplay tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -26,7 +31,7 @@ jobs:
       - name: Install Ebitengine Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             libasound2-dev \
             libgl1-mesa-dev \
             libx11-dev \
@@ -37,21 +42,53 @@ jobs:
             libxrender-dev \
             libxxf86vm-dev
 
+      - name: Verify required project files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_files=(
+            go.mod
+            main.go
+            game/game.go
+            game/draw.go
+            game/game_test.go
+            mobile/mobile.go
+            web/index.html
+            mobile/android/settings.gradle
+            mobile/android/build.gradle
+            mobile/android/gradle.properties
+            mobile/android/app/build.gradle
+            mobile/android/app/src/main/AndroidManifest.xml
+            mobile/android/app/src/main/java/com/example/mosquitorevenge/MainActivity.java
+            mobile/android/app/src/main/res/values/styles.xml
+          )
+          for file in "${required_files[@]}"; do
+            if [[ ! -s "$file" ]]; then
+              echo "::error file=$file::Required project file is missing or empty"
+              exit 1
+            fi
+          done
+          echo "All required project files are present."
+
       - name: Download Go modules
         run: go mod download
 
-      - name: Check formatting
+      - name: Check Go formatting
         shell: bash
         run: |
-          files=$(gofmt -l $(find . -name '*.go' -not -path './mobile/android/*'))
-          if [[ -n "$files" ]]; then
-            echo "Go files need gofmt:"
-            echo "$files"
-            exit 1
+          set -euo pipefail
+          mapfile -t go_files < <(find . -type f -name '*.go' -not -path './mobile/android/*' -print)
+          if ((${#go_files[@]} > 0)); then
+            unformatted="$(gofmt -l "${go_files[@]}")"
+            if [[ -n "$unformatted" ]]; then
+              echo "::error::Go files need gofmt:"
+              printf '%s\n' "$unformatted"
+              exit 1
+            fi
           fi
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run gameplay tests
+        run: go test -v ./...
 
       - name: Verify desktop build
         run: go build -trimpath -o /tmp/mosquito-revenge .
@@ -60,6 +97,7 @@ jobs:
     name: Build WebAssembly
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -74,13 +112,18 @@ jobs:
         run: go mod download
 
       - name: Compile WASM and package site
+        shell: bash
         env:
           GOOS: js
           GOARCH: wasm
         run: |
+          set -euo pipefail
+          test -s web/index.html
           mkdir -p site
           go build -trimpath -ldflags='-s -w' -o site/mosquito-revenge.wasm .
-          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" site/wasm_exec.js
+          WASM_EXEC="$(go env GOROOT)/lib/wasm/wasm_exec.js"
+          test -s "$WASM_EXEC"
+          cp "$WASM_EXEC" site/wasm_exec.js
           cp web/index.html site/index.html
           test -s site/mosquito-revenge.wasm
           test -s site/wasm_exec.js
@@ -113,6 +156,7 @@ jobs:
     name: Build Android debug APK
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -128,7 +172,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
@@ -136,19 +179,31 @@ jobs:
       - name: Install Android SDK and NDK
         shell: bash
         run: |
-          sdkmanager --install \
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/.android/sdk}}"
+          sdkmanager --sdk_root="$SDK_ROOT" --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0" \
             "ndk;27.2.12479018"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          NDK_ROOT="$SDK_ROOT/ndk/27.2.12479018"
+          test -d "$NDK_ROOT"
+          {
+            echo "ANDROID_HOME=$SDK_ROOT"
+            echo "ANDROID_SDK_ROOT=$SDK_ROOT"
+            echo "ANDROID_NDK_HOME=$NDK_ROOT"
+            echo "ANDROID_NDK_ROOT=$NDK_ROOT"
+          } >> "$GITHUB_ENV"
+          echo "Android SDK: $SDK_ROOT"
+          echo "Android NDK: $NDK_ROOT"
 
       - name: Download Go modules
         run: go mod download
 
       - name: Generate Android library (AAR)
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p mobile/android/app/libs
           go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
             -target android \
@@ -158,13 +213,16 @@ jobs:
             ./mobile
           test -s mobile/android/app/libs/mosquitorevenge.aar
 
-      - name: Set up Gradle
+      - name: Set up Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.11.1'
 
       - name: Assemble debug APK
         run: gradle --no-daemon --stacktrace -p mobile/android assembleDebug
+
+      - name: Verify APK output
+        run: test -s mobile/android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7
