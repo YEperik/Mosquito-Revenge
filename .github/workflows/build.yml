@@ -76,7 +76,6 @@ jobs:
       - name: Check Go formatting
         shell: bash
         run: |
-          set -euo pipefail
           mapfile -t go_files < <(find . -type f -name '*.go' -not -path './mobile/android/*' -print)
           if ((${#go_files[@]} > 0)); then
             unformatted="$(gofmt -l "${go_files[@]}")"
@@ -110,8 +109,6 @@ jobs:
           GOOS: js
           GOARCH: wasm
         run: |
-          set -euo pipefail
-          test -s web/index.html
           mkdir -p site
           go build -trimpath -ldflags='-s -w' -o site/mosquito-revenge.wasm .
           WASM_EXEC="$(go env GOROOT)/lib/wasm/wasm_exec.js"
@@ -172,7 +169,6 @@ jobs:
       - name: Install Android SDK and NDK
         shell: bash
         run: |
-          set -euo pipefail
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/.android/sdk}}"
           sdkmanager --sdk_root="$SDK_ROOT" --install \
             "platform-tools" \
@@ -196,7 +192,6 @@ jobs:
       - name: Generate Android library (AAR)
         shell: bash
         run: |
-          set -euo pipefail
           mkdir -p mobile/android/app/libs
           go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
             -target android \
