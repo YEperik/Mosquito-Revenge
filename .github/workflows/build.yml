@@ -1,4 +1,4 @@
-name: Build Mosquito Revenge
+name: Mosquito Revenge - CI and Build
 
 on:
   push:
@@ -10,33 +10,83 @@ permissions:
   contents: read
 
 jobs:
-  web:
-    name: Build WebAssembly
+  test:
+    name: Go checks and gameplay tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.26.x'
+          go-version: '1.25.x'
           cache: false
 
-      - name: Download modules
+      - name: Install Ebitengine Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            libxrender-dev \
+            libxxf86vm-dev
+
+      - name: Download Go modules
         run: go mod download
 
-      - name: Compile WASM
+      - name: Check formatting
+        shell: bash
+        run: |
+          files=$(gofmt -l $(find . -name '*.go' -not -path './mobile/android/*'))
+          if [[ -n "$files" ]]; then
+            echo "Go files need gofmt:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Verify desktop build
+        run: go build -trimpath -o /tmp/mosquito-revenge .
+
+  web:
+    name: Build WebAssembly
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.25.x'
+          cache: false
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Compile WASM and package site
         env:
           GOOS: js
           GOARCH: wasm
         run: |
           mkdir -p site
-          go build -trimpath -ldflags="-s -w" -o site/mosquito-revenge.wasm .
+          go build -trimpath -ldflags='-s -w' -o site/mosquito-revenge.wasm .
           cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" site/wasm_exec.js
           cp web/index.html site/index.html
+          test -s site/mosquito-revenge.wasm
+          test -s site/wasm_exec.js
+          test -s site/index.html
 
-      - name: Upload Pages artifact
+      - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: site
@@ -55,21 +105,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy
+      - name: Publish site
         id: deployment
         uses: actions/deploy-pages@v5
 
   android:
-    name: Build Android APK
+    name: Build Android debug APK
+    needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.26.x'
+          go-version: '1.25.x'
           cache: false
 
       - name: Set up Java 17
@@ -77,40 +128,42 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK and NDK
+        shell: bash
         run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
       - name: Download Go modules
         run: go mod download
 
-      # --- PERUBAHAN UTAMA ADA DI SINI ---
-      - name: Install ebitenmobile tool
-        run: go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@v2.10.5
-
-      - name: Build Ebitengine Android library
+      - name: Generate Android library (AAR)
         run: |
           mkdir -p mobile/android/app/libs
-          ebitenmobile bind \
+          go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
             -target android \
             -androidapi 23 \
             -javapkg com.example.mosquitorevenge \
             -o mobile/android/app/libs/mosquitorevenge.aar \
             ./mobile
-      # ----------------------------------
+          test -s mobile/android/app/libs/mosquitorevenge.aar
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.11.1'
 
-      - name: Package APK
+      - name: Assemble debug APK
         run: gradle --no-daemon --stacktrace -p mobile/android assembleDebug
 
       - name: Upload APK artifact
