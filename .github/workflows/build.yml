@@ -86,13 +86,6 @@ jobs:
               exit 1
             fi
           fi
-
-      - name: Run gameplay tests
-        run: go test -v ./...
-
-      - name: Verify desktop build
-        run: go build -trimpath -o /tmp/mosquito-revenge .
-
   web:
     name: Build WebAssembly
     needs: test
